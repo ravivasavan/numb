@@ -176,8 +176,8 @@ final class OverlayController {
             tint.autoresizingMask = [.width, .height]
             content.addSubview(tint)
 
-            // Keyboard — centered
-            let keyboard = KeyboardView(frame: .zero)
+            // Keyboard — 75% of this screen's width, centered
+            let keyboard = KeyboardView(targetWidth: screen.frame.width * 0.75)
             keyboardViews.append(keyboard)
             content.addSubview(keyboard)
             NSLayoutConstraint.activate([
