@@ -1,9 +1,15 @@
 import Cocoa
 
-let exitKeyCode: CGKeyCode = 14 // 'E'
+let exitKeyCode: CGKeyCode = 40 // 'K'
 let requiredFlags: CGEventFlags = [.maskCommand, .maskAlternate]
 
 var eventTap: CFMachPort?
+var lastFlags: CGEventFlags = []
+var keyboardViews: [KeyboardView] = []
+
+func pulseAll(_ code: CGKeyCode) {
+    keyboardViews.forEach { $0.pulse(code) }
+}
 
 func eventCallback(
     proxy: CGEventTapProxy,
@@ -18,22 +24,33 @@ func eventCallback(
         return Unmanaged.passUnretained(event)
     }
 
-    if type == .keyDown {
+    switch type {
+    case .keyDown:
         let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
         let flags = event.flags.intersection([.maskCommand, .maskAlternate, .maskControl, .maskShift])
         if keyCode == exitKeyCode && flags == requiredFlags {
-            DispatchQueue.main.async {
-                NSApp.terminate(nil)
-            }
+            DispatchQueue.main.async { NSApp.terminate(nil) }
             return nil
         }
-    }
-
-    if type == .keyDown || type == .keyUp || type == .flagsChanged {
+        DispatchQueue.main.async { pulseAll(keyCode) }
         return nil
-    }
 
-    return Unmanaged.passUnretained(event)
+    case .keyUp:
+        return nil
+
+    case .flagsChanged:
+        let newFlags = event.flags
+        let pressedBits = newFlags.rawValue & ~lastFlags.rawValue
+        lastFlags = newFlags
+        if pressedBits != 0 {
+            let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+            DispatchQueue.main.async { pulseAll(keyCode) }
+        }
+        return nil
+
+    default:
+        return Unmanaged.passUnretained(event)
+    }
 }
 
 let trusted = AXIsProcessTrustedWithOptions(
@@ -78,60 +95,14 @@ let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
 CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
 CGEvent.tapEnable(tap: tap, enable: true)
 
-// MARK: - Design tokens
-
 enum Design {
-    static let night = NSColor(red: 0x0D / 255.0, green: 0x1B / 255.0, blue: 0x1E / 255.0, alpha: 1.0)
-    static let white = NSColor(red: 0xFF / 255.0, green: 0xF5 / 255.0, blue: 0xF5 / 255.0, alpha: 1.0)
-    static let backdropTint = NSColor(red: 0x1A / 255.0, green: 0x1A / 255.0, blue: 0x1A / 255.0, alpha: 0.80)
-    static let shadow = NSColor(red: 0x1A / 255.0, green: 0x1A / 255.0, blue: 0x1A / 255.0, alpha: 0.25)
-    static let keycapSide: CGFloat = 80
-    static let keycapRadius: CGFloat = 12.444
-    static let keycapGap: CGFloat = 8
-    static let keySymbolSize: CGFloat = 40
-    static let captionSize: CGFloat = 16
+    static let backdropTint = NSColor(red: 0x1A/255.0, green: 0x1A/255.0, blue: 0x1A/255.0, alpha: 0.80)
+    static let captionColor = NSColor(red: 0xFF/255.0, green: 0xF5/255.0, blue: 0xF5/255.0, alpha: 0.70)
 }
 
-func mono(_ size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
-    if let sfMono = NSFont(name: "SFMono-Regular", size: size) {
-        return sfMono
-    }
-    return NSFont.monospacedSystemFont(ofSize: size, weight: weight)
-}
-
-func makeKeycap(_ symbol: String) -> NSView {
-    let cap = NSView()
-    cap.wantsLayer = true
-    cap.translatesAutoresizingMaskIntoConstraints = false
-
-    let face = cap.layer!
-    face.cornerRadius = Design.keycapRadius
-    face.cornerCurve = .continuous
-    face.backgroundColor = Design.night.cgColor
-    face.shadowColor = Design.shadow.cgColor
-    face.shadowOpacity = 1.0 // alpha already baked into shadow color
-    face.shadowRadius = 4
-    face.shadowOffset = CGSize(width: 0, height: -4)
-    face.masksToBounds = false
-
-    let label = NSTextField(labelWithString: symbol)
-    label.font = mono(Design.keySymbolSize, weight: .regular)
-    label.textColor = Design.white
-    label.alignment = .center
-    label.isBezeled = false
-    label.isEditable = false
-    label.drawsBackground = false
-    label.translatesAutoresizingMaskIntoConstraints = false
-
-    cap.addSubview(label)
-    NSLayoutConstraint.activate([
-        cap.widthAnchor.constraint(equalToConstant: Design.keycapSide),
-        cap.heightAnchor.constraint(equalToConstant: Design.keycapSide),
-        label.centerXAnchor.constraint(equalTo: cap.centerXAnchor),
-        label.centerYAnchor.constraint(equalTo: cap.centerYAnchor),
-    ])
-
-    return cap
+func mono(_ size: CGFloat) -> NSFont {
+    NSFont(name: "SFMono-Regular", size: size)
+        ?? NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
 }
 
 final class OverlayController {
@@ -146,7 +117,7 @@ final class OverlayController {
                 defer: false,
                 screen: screen
             )
-            window.setFrame(screen.frame, display: true) // anchor explicitly on this screen
+            window.setFrame(screen.frame, display: true)
             window.level = .screenSaver
             window.backgroundColor = .clear
             window.isOpaque = false
@@ -159,7 +130,6 @@ final class OverlayController {
             content.autoresizingMask = [.width, .height]
             content.wantsLayer = true
 
-            // Backdrop blur — system blur behind the window
             let blur = NSVisualEffectView(frame: content.bounds)
             blur.material = .fullScreenUI
             blur.blendingMode = .behindWindow
@@ -167,34 +137,26 @@ final class OverlayController {
             blur.autoresizingMask = [.width, .height]
             content.addSubview(blur)
 
-            // Backdrop tint — rgba(26, 26, 26, 0.80)
             let tint = NSView(frame: content.bounds)
             tint.wantsLayer = true
             tint.layer?.backgroundColor = Design.backdropTint.cgColor
             tint.autoresizingMask = [.width, .height]
             content.addSubview(tint)
 
-            // Foreground: keycaps + caption
-            let keycaps = NSStackView(views: [
-                makeKeycap("⌘"),
-                makeKeycap("⌥"),
-                makeKeycap("E"),
-            ])
-            keycaps.orientation = .horizontal
-            keycaps.spacing = Design.keycapGap
-            keycaps.alignment = .centerY
-
-            let caption = NSTextField(labelWithString: "TO UNLOCK")
-            caption.font = mono(Design.captionSize, weight: .regular)
-            caption.textColor = Design.white
+            let caption = NSTextField(labelWithString: "Press cmd option k to exit")
+            caption.font = mono(14)
+            caption.textColor = Design.captionColor
             caption.alignment = .center
             caption.isBezeled = false
             caption.isEditable = false
             caption.drawsBackground = false
 
-            let stack = NSStackView(views: [keycaps, caption])
+            let keyboard = KeyboardView(frame: .zero)
+            keyboardViews.append(keyboard)
+
+            let stack = NSStackView(views: [caption, keyboard])
             stack.orientation = .vertical
-            stack.spacing = 16
+            stack.spacing = 28
             stack.alignment = .centerX
             stack.translatesAutoresizingMaskIntoConstraints = false
 

@@ -2,13 +2,14 @@
 
 A tiny macOS app that makes your keyboard go numb so you can clean it without mashing keys.
 
-![Numb overlay showing ⌘ ⌥ E to unlock](docs/screenshot.png)
+![Numb overlay](docs/screenshot.png)
 
 ## What it does
 
 - Swallows every keystroke and modifier the moment it launches
 - Dims and blurs every connected display so you know it's locked
-- Only **⌘ ⌥ E** quits the app and brings the keyboard back
+- Shows a live keyboard grid that lights up each key as it's mashed — turns kid or cat chaos into a little light show
+- Only **⌘ ⌥ K** quits the app and brings the keyboard back
 
 Mouse, trackpad, and the physical power button are not blocked, so you always have a way out.
 
@@ -23,7 +24,7 @@ Mouse, trackpad, and the physical power button are not blocked, so you always ha
 1. Open `Numb.app`
 2. Screen dims, keyboard is dead
 3. Clean the keyboard
-4. Press **⌘ ⌥ E** to unlock
+4. Press **⌘ ⌥ K** to unlock
 
 ## Build from source
 

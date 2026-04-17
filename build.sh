@@ -17,7 +17,7 @@ swiftc -O \
     -framework Cocoa \
     -framework ApplicationServices \
     -o "$MACOS_DIR/$APP_NAME" \
-    Sources/main.swift
+    Sources/*.swift
 
 cp Info.plist "$CONTENTS/Info.plist"
 
@@ -55,4 +55,4 @@ echo ""
 echo "next steps:"
 echo "  1. open $APP_DIR   (first launch will prompt for Accessibility access)"
 echo "  2. grant access in System Settings → Privacy & Security → Accessibility"
-echo "  3. relaunch Numb — keyboard locks instantly; ⌘ ⌥ E to unlock"
+echo "  3. relaunch Numb — keyboard locks instantly; ⌘ ⌥ K to unlock"
