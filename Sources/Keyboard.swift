@@ -51,7 +51,7 @@ let hotColors: [NSColor] = [
 ]
 
 let attackDuration: CFTimeInterval = 0.08
-let decayDuration:  CFTimeInterval = 2.10  // slow cascade
+let decayDuration:  CFTimeInterval = 2.50  // slow cascade
 
 final class KeyView: NSView {
     let keyCode: CGKeyCode?
@@ -83,20 +83,40 @@ final class KeyView: NSView {
         guard let layer = self.layer else { return }
 
         let hotBg = hotColors.randomElement() ?? NSColor.white
+        let fromBg = layer.presentation()?.backgroundColor ?? layer.backgroundColor
+
+        // Attack — quick ease-in to random hot color
+        let attack = CABasicAnimation(keyPath: "backgroundColor")
+        attack.fromValue = fromBg
+        attack.toValue = hotBg.cgColor
+        attack.duration = attackDuration
+        attack.timingFunction = CAMediaTimingFunction(name: .easeIn)
+        attack.fillMode = .forwards
+        attack.isRemovedOnCompletion = false
 
         CATransaction.begin()
-        CATransaction.setAnimationDuration(attackDuration)
-        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeIn))
+        CATransaction.setDisableActions(true)
         layer.backgroundColor = hotBg.cgColor
         CATransaction.commit()
+        layer.add(attack, forKey: "bg")
 
         let work = DispatchWorkItem { [weak self] in
             guard let self = self, let layer = self.layer else { return }
+
+            // Decay — slow ease-out back to Night
+            let decay = CABasicAnimation(keyPath: "backgroundColor")
+            decay.fromValue = hotBg.cgColor
+            decay.toValue = keyBaseBg.cgColor
+            decay.duration = decayDuration
+            decay.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            decay.fillMode = .forwards
+            decay.isRemovedOnCompletion = true
+
             CATransaction.begin()
-            CATransaction.setAnimationDuration(decayDuration)
-            CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeOut))
+            CATransaction.setDisableActions(true)
             layer.backgroundColor = keyBaseBg.cgColor
             CATransaction.commit()
+            layer.add(decay, forKey: "bg")
         }
         pendingDecay = work
         DispatchQueue.main.asyncAfter(deadline: .now() + attackDuration, execute: work)
