@@ -78,34 +78,45 @@ let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
 CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
 CGEvent.tapEnable(tap: tap, enable: true)
 
+// MARK: - Design tokens
+
+enum Design {
+    static let night = NSColor(red: 0x0D / 255.0, green: 0x1B / 255.0, blue: 0x1E / 255.0, alpha: 1.0)
+    static let white = NSColor(red: 0xFF / 255.0, green: 0xF5 / 255.0, blue: 0xF5 / 255.0, alpha: 1.0)
+    static let backdropTint = NSColor(red: 0x1A / 255.0, green: 0x1A / 255.0, blue: 0x1A / 255.0, alpha: 0.80)
+    static let shadow = NSColor(red: 0x1A / 255.0, green: 0x1A / 255.0, blue: 0x1A / 255.0, alpha: 0.25)
+    static let keycapSide: CGFloat = 80
+    static let keycapRadius: CGFloat = 12.444
+    static let keycapGap: CGFloat = 8
+    static let keySymbolSize: CGFloat = 40
+    static let captionSize: CGFloat = 16
+}
+
+func mono(_ size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
+    if let sfMono = NSFont(name: "SFMono-Regular", size: size) {
+        return sfMono
+    }
+    return NSFont.monospacedSystemFont(ofSize: size, weight: weight)
+}
+
 func makeKeycap(_ symbol: String) -> NSView {
-    let side: CGFloat = 96
     let cap = NSView()
     cap.wantsLayer = true
     cap.translatesAutoresizingMaskIntoConstraints = false
 
     let face = cap.layer!
-    face.cornerRadius = 18
+    face.cornerRadius = Design.keycapRadius
     face.cornerCurve = .continuous
-    face.backgroundColor = NSColor(white: 1.0, alpha: 0.96).cgColor
-    face.borderColor = NSColor(white: 1.0, alpha: 0.85).cgColor
-    face.borderWidth = 1
-    face.shadowColor = NSColor.black.cgColor
-    face.shadowOpacity = 0.45
-    face.shadowRadius = 18
-    face.shadowOffset = CGSize(width: 0, height: -8)
+    face.backgroundColor = Design.night.cgColor
+    face.shadowColor = Design.shadow.cgColor
+    face.shadowOpacity = 1.0 // alpha already baked into shadow color
+    face.shadowRadius = 4
+    face.shadowOffset = CGSize(width: 0, height: -4)
     face.masksToBounds = false
 
-    // Subtle inner highlight on top edge for the keycap feel
-    let highlight = CALayer()
-    highlight.frame = CGRect(x: 6, y: side - 4, width: side - 12, height: 2)
-    highlight.backgroundColor = NSColor(white: 1.0, alpha: 0.9).cgColor
-    highlight.cornerRadius = 1
-    face.addSublayer(highlight)
-
     let label = NSTextField(labelWithString: symbol)
-    label.font = NSFont.systemFont(ofSize: 44, weight: .semibold)
-    label.textColor = NSColor(white: 0.08, alpha: 1.0)
+    label.font = mono(Design.keySymbolSize, weight: .regular)
+    label.textColor = Design.white
     label.alignment = .center
     label.isBezeled = false
     label.isEditable = false
@@ -114,8 +125,8 @@ func makeKeycap(_ symbol: String) -> NSView {
 
     cap.addSubview(label)
     NSLayoutConstraint.activate([
-        cap.widthAnchor.constraint(equalToConstant: side),
-        cap.heightAnchor.constraint(equalToConstant: side),
+        cap.widthAnchor.constraint(equalToConstant: Design.keycapSide),
+        cap.heightAnchor.constraint(equalToConstant: Design.keycapSide),
         label.centerXAnchor.constraint(equalTo: cap.centerXAnchor),
         label.centerYAnchor.constraint(equalTo: cap.centerYAnchor),
     ])
@@ -135,81 +146,65 @@ final class OverlayController {
                 defer: false,
                 screen: screen
             )
+            window.setFrame(screen.frame, display: true) // anchor explicitly on this screen
             window.level = .screenSaver
             window.backgroundColor = .clear
             window.isOpaque = false
             window.hasShadow = false
             window.ignoresMouseEvents = true
+            window.isReleasedWhenClosed = false
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
 
-            let container = NSView(frame: NSRect(origin: .zero, size: screen.frame.size))
-            container.autoresizingMask = [.width, .height]
-            container.wantsLayer = true
+            let content = NSView(frame: NSRect(origin: .zero, size: screen.frame.size))
+            content.autoresizingMask = [.width, .height]
+            content.wantsLayer = true
 
-            // Real blur of everything behind the window
-            let blur = NSVisualEffectView(frame: container.bounds)
+            // Backdrop blur — system blur behind the window
+            let blur = NSVisualEffectView(frame: content.bounds)
             blur.material = .fullScreenUI
             blur.blendingMode = .behindWindow
             blur.state = .active
             blur.autoresizingMask = [.width, .height]
-            container.addSubview(blur)
+            content.addSubview(blur)
 
-            // Dim tint on top of the blur for contrast
-            let tint = NSView(frame: container.bounds)
+            // Backdrop tint — rgba(26, 26, 26, 0.80)
+            let tint = NSView(frame: content.bounds)
             tint.wantsLayer = true
-            tint.layer?.backgroundColor = NSColor(white: 0, alpha: 0.38).cgColor
+            tint.layer?.backgroundColor = Design.backdropTint.cgColor
             tint.autoresizingMask = [.width, .height]
-            container.addSubview(tint)
+            content.addSubview(tint)
 
-            // Text + keycaps
-            let title = NSTextField(labelWithString: "Numb")
-            title.font = NSFont.monospacedSystemFont(ofSize: 84, weight: .heavy)
-            title.textColor = NSColor.white
-            title.alignment = .center
-            title.isBezeled = false
-            title.isEditable = false
-            title.drawsBackground = false
-
-            let caption = NSTextField(labelWithString: "keyboard locked")
-            caption.font = NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
-            caption.textColor = NSColor(white: 1, alpha: 0.55)
-            caption.alignment = .center
-            caption.isBezeled = false
-            caption.isEditable = false
-            caption.drawsBackground = false
-
-            let hint = NSTextField(labelWithString: "press to unlock")
-            hint.font = NSFont.monospacedSystemFont(ofSize: 15, weight: .medium)
-            hint.textColor = NSColor(white: 1, alpha: 0.7)
-            hint.alignment = .center
-            hint.isBezeled = false
-            hint.isEditable = false
-            hint.drawsBackground = false
-
+            // Foreground: keycaps + caption
             let keycaps = NSStackView(views: [
                 makeKeycap("⌘"),
                 makeKeycap("⌥"),
                 makeKeycap("E"),
             ])
             keycaps.orientation = .horizontal
-            keycaps.spacing = 18
+            keycaps.spacing = Design.keycapGap
             keycaps.alignment = .centerY
 
-            let stack = NSStackView(views: [title, caption, hint, keycaps])
+            let caption = NSTextField(labelWithString: "TO UNLOCK")
+            caption.font = mono(Design.captionSize, weight: .regular)
+            caption.textColor = Design.white
+            caption.alignment = .center
+            caption.isBezeled = false
+            caption.isEditable = false
+            caption.drawsBackground = false
+
+            let stack = NSStackView(views: [keycaps, caption])
             stack.orientation = .vertical
-            stack.spacing = 22
+            stack.spacing = 16
             stack.alignment = .centerX
-            stack.setCustomSpacing(36, after: hint)
-            stack.setCustomSpacing(6, after: title)
             stack.translatesAutoresizingMaskIntoConstraints = false
 
-            container.addSubview(stack)
+            content.addSubview(stack)
             NSLayoutConstraint.activate([
-                stack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-                stack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                stack.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+                stack.centerYAnchor.constraint(equalTo: content.centerYAnchor),
             ])
 
-            window.contentView = container
+            window.contentView = content
             window.orderFrontRegardless()
             windows.append(window)
         }
