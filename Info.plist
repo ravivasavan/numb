@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>NUMB</string>
+    <string>Numb</string>
     <key>CFBundleIdentifier</key>
     <string>me.ravivasavan.numb</string>
     <key>CFBundleName</key>
-    <string>NUMB</string>
+    <string>Numb</string>
     <key>CFBundleDisplayName</key>
-    <string>NUMB</string>
+    <string>Numb</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleShortVersionString</key>

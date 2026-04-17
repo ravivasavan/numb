@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-APP_NAME="NUMB"
+APP_NAME="Numb"
 BUILD_DIR="build"
 APP_DIR="$BUILD_DIR/$APP_NAME.app"
 CONTENTS="$APP_DIR/Contents"
@@ -29,4 +29,4 @@ echo ""
 echo "next steps:"
 echo "  1. open $APP_DIR   (first launch will prompt for Accessibility access)"
 echo "  2. grant access in System Settings → Privacy & Security → Accessibility"
-echo "  3. relaunch NUMB — keyboard locks instantly; ⌘ ⌥ E to unlock"
+echo "  3. relaunch Numb — keyboard locks instantly; ⌘ ⌥ E to unlock"

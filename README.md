@@ -1,4 +1,4 @@
-# NUMB
+# Numb
 
 A tiny macOS app that makes your keyboard go numb so you can clean it without mashing keys.
 
@@ -10,14 +10,14 @@ A tiny macOS app that makes your keyboard go numb so you can clean it without ma
 
 ```sh
 ./build.sh
-open build/NUMB.app
+open build/Numb.app
 ```
 
 First launch will prompt for Accessibility access (required for the event tap). Grant it in **System Settings → Privacy & Security → Accessibility**, then relaunch.
 
 ## Use
 
-1. Launch `NUMB.app`
+1. Launch `Numb.app`
 2. Screen dims, keyboard is dead
 3. Clean the keyboard
 4. Press **⌘ ⌥ E** to exit

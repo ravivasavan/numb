@@ -42,8 +42,8 @@ let trusted = AXIsProcessTrustedWithOptions(
 
 if !trusted {
     let alert = NSAlert()
-    alert.messageText = "NUMB needs Accessibility access"
-    alert.informativeText = "Grant access in System Settings → Privacy & Security → Accessibility, then relaunch NUMB."
+    alert.messageText = "Numb needs Accessibility access"
+    alert.informativeText = "Grant access in System Settings → Privacy & Security → Accessibility, then relaunch Numb."
     alert.alertStyle = .warning
     alert.addButton(withTitle: "Quit")
     alert.runModal()
@@ -66,7 +66,7 @@ eventTap = CGEvent.tapCreate(
 
 guard let tap = eventTap else {
     let alert = NSAlert()
-    alert.messageText = "NUMB failed to lock keyboard"
+    alert.messageText = "Numb failed to lock keyboard"
     alert.informativeText = "Could not create event tap. Make sure Accessibility access is granted."
     alert.alertStyle = .critical
     alert.addButton(withTitle: "Quit")
@@ -100,7 +100,7 @@ final class OverlayController {
             let container = NSView(frame: screen.frame)
             container.wantsLayer = true
 
-            let title = NSTextField(labelWithString: "NUMB")
+            let title = NSTextField(labelWithString: "Numb")
             title.font = NSFont.monospacedSystemFont(ofSize: 96, weight: .heavy)
             title.textColor = NSColor.white
             title.alignment = .center
