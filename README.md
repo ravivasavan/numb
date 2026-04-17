@@ -2,7 +2,7 @@
 
 A tiny macOS app that makes your keyboard go numb so you can clean it without mashing keys. Toddlers and cats welcome.
 
-![Numb overlay](docs/screenshot.png)
+![Numb — default state: blurred screen, on-screen keyboard at rest](docs/default-state.png)
 
 ## What it does
 
@@ -13,6 +13,8 @@ A tiny macOS app that makes your keyboard go numb so you can clean it without ma
 - Only **⌘ ⌥ K** quits the app and brings the keyboard back
 
 Mouse, trackpad, and the physical power button are not blocked, so you always have a way out.
+
+![Numb — light show activated: random colors flashing across the keyboard as keys are mashed](docs/light-show.png)
 
 ## Install
 
