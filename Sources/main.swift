@@ -96,13 +96,46 @@ CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
 CGEvent.tapEnable(tap: tap, enable: true)
 
 enum Design {
-    static let backdropTint = NSColor(red: 0x1A/255.0, green: 0x1A/255.0, blue: 0x1A/255.0, alpha: 0.80)
-    static let captionColor = NSColor(red: 0xFF/255.0, green: 0xF5/255.0, blue: 0xF5/255.0, alpha: 0.70)
+    static let backdropTint = NSColor(red: 0x32/255.0, green: 0x32/255.0, blue: 0x32/255.0, alpha: 0.80)
+    static let white = NSColor(red: 0xFF/255.0, green: 0xF5/255.0, blue: 0xF5/255.0, alpha: 1.0)
+    static let captionBottomInset: CGFloat = 72
+    static let hintKeycapSide: CGFloat = 26
+    static let hintKeycapRadius: CGFloat = 4
+    static let hintFontSize: CGFloat = 13
 }
 
 func mono(_ size: CGFloat) -> NSFont {
     NSFont(name: "SFMono-Regular", size: size)
         ?? NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+}
+
+func makeHintKeycap(_ symbol: String) -> NSView {
+    let cap = NSView()
+    cap.wantsLayer = true
+    cap.layer?.cornerRadius = Design.hintKeycapRadius
+    cap.layer?.cornerCurve = .continuous
+    cap.layer?.borderWidth = 1
+    cap.layer?.borderColor = Design.white.cgColor
+    cap.layer?.backgroundColor = NSColor.clear.cgColor
+    cap.translatesAutoresizingMaskIntoConstraints = false
+
+    let label = NSTextField(labelWithString: symbol)
+    label.font = mono(Design.hintFontSize)
+    label.textColor = Design.white
+    label.alignment = .center
+    label.isBezeled = false
+    label.isEditable = false
+    label.drawsBackground = false
+    label.translatesAutoresizingMaskIntoConstraints = false
+
+    cap.addSubview(label)
+    NSLayoutConstraint.activate([
+        cap.widthAnchor.constraint(equalToConstant: Design.hintKeycapSide),
+        cap.heightAnchor.constraint(equalToConstant: Design.hintKeycapSide),
+        label.centerXAnchor.constraint(equalTo: cap.centerXAnchor),
+        label.centerYAnchor.constraint(equalTo: cap.centerYAnchor),
+    ])
+    return cap
 }
 
 final class OverlayController {
@@ -143,27 +176,42 @@ final class OverlayController {
             tint.autoresizingMask = [.width, .height]
             content.addSubview(tint)
 
-            let caption = NSTextField(labelWithString: "Press cmd option k to exit")
-            caption.font = mono(14)
-            caption.textColor = Design.captionColor
-            caption.alignment = .center
-            caption.isBezeled = false
-            caption.isEditable = false
-            caption.drawsBackground = false
-
+            // Keyboard — centered
             let keyboard = KeyboardView(frame: .zero)
             keyboardViews.append(keyboard)
-
-            let stack = NSStackView(views: [caption, keyboard])
-            stack.orientation = .vertical
-            stack.spacing = 28
-            stack.alignment = .centerX
-            stack.translatesAutoresizingMaskIntoConstraints = false
-
-            content.addSubview(stack)
+            content.addSubview(keyboard)
             NSLayoutConstraint.activate([
-                stack.centerXAnchor.constraint(equalTo: content.centerXAnchor),
-                stack.centerYAnchor.constraint(equalTo: content.centerYAnchor),
+                keyboard.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+                keyboard.centerYAnchor.constraint(equalTo: content.centerYAnchor),
+            ])
+
+            // Bottom hint — ⌘ ⌥ K keycaps + TO UNLOCK
+            let keycaps = NSStackView(views: [
+                makeHintKeycap("⌘"),
+                makeHintKeycap("⌥"),
+                makeHintKeycap("K"),
+            ])
+            keycaps.orientation = .horizontal
+            keycaps.spacing = 2
+            keycaps.alignment = .centerY
+
+            let toUnlock = NSTextField(labelWithString: "TO UNLOCK")
+            toUnlock.font = mono(Design.hintFontSize)
+            toUnlock.textColor = Design.white
+            toUnlock.alignment = .center
+            toUnlock.isBezeled = false
+            toUnlock.isEditable = false
+            toUnlock.drawsBackground = false
+
+            let hint = NSStackView(views: [keycaps, toUnlock])
+            hint.orientation = .horizontal
+            hint.spacing = 10
+            hint.alignment = .centerY
+            hint.translatesAutoresizingMaskIntoConstraints = false
+            content.addSubview(hint)
+            NSLayoutConstraint.activate([
+                hint.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+                hint.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -Design.captionBottomInset),
             ])
 
             window.contentView = content
