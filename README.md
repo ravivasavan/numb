@@ -1,29 +1,32 @@
 # Numb
 
-A tiny macOS app that makes your keyboard go numb so you can clean it without mashing keys.
+A tiny macOS app that makes your keyboard go numb so you can clean it without mashing keys. Toddlers and cats welcome.
 
 ![Numb overlay](docs/screenshot.png)
 
 ## What it does
 
 - Swallows every keystroke and modifier the moment it launches
-- Dims and blurs every connected display so you know it's locked
-- Shows a live keyboard grid that lights up each key as it's mashed — turns kid or cat chaos into a little light show
+- Blurs and dims every connected display so you know it's locked
+- Renders a live on-screen Mac keyboard that scales to 75% of each screen's width
+- Every stray press flashes the matching key a **random color** from a 24-hue palette, then slowly fades back over 2.5s — accidental lightshow
 - Only **⌘ ⌥ K** quits the app and brings the keyboard back
 
 Mouse, trackpad, and the physical power button are not blocked, so you always have a way out.
 
 ## Install
 
-1. Download the latest `Numb.zip` from the [releases page](https://github.com/ravivasavan/numb/releases/latest).
-2. Unzip it and drag `Numb.app` into `/Applications`.
-3. First launch will prompt for **Accessibility** access — required for the keyboard lock. Grant it in **System Settings → Privacy & Security → Accessibility**, then relaunch.
+[**Download Numb.zip**](https://github.com/ravivasavan/numb/releases/latest/download/Numb.zip) &nbsp;·&nbsp; [all releases](https://github.com/ravivasavan/numb/releases)
+
+1. Download `Numb.zip` from the link above (or the [releases page](https://github.com/ravivasavan/numb/releases/latest)).
+2. Unzip and drag `Numb.app` into `/Applications`.
+3. First launch prompts for **Accessibility** access — required for the keyboard lock. Grant it in **System Settings → Privacy & Security → Accessibility**, then relaunch.
 
 ## Use
 
 1. Open `Numb.app`
-2. Screen dims, keyboard is dead
-3. Clean the keyboard
+2. Screen blurs + dims, keyboard is dead
+3. Clean the keyboard (or let the toddler / cat go to town)
 4. Press **⌘ ⌥ K** to unlock
 
 ## Build from source
