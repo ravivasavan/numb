@@ -4,6 +4,10 @@
 <dict>
     <key>CFBundleExecutable</key>
     <string>Numb</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>me.ravivasavan.numb</string>
     <key>CFBundleName</key>
