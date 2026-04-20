@@ -6,15 +6,24 @@ A tiny macOS app that makes your keyboard go numb so you can clean it without ma
 
 ## What it does
 
-- Swallows every keystroke and modifier the moment it launches
-- Blurs and dims every connected display so you know it's locked
+- Swallows every keystroke, modifier, mouse click, scroll, and trackpad gesture the moment it launches
+- Hides the cursor and blurs/dims every connected display so you know it's locked
 - Renders a live on-screen Mac keyboard that scales to 75% of each screen's width
 - Every stray press flashes the matching key a **random color** from a 24-hue palette, then slowly fades back over 2.5s — accidental lightshow
-- Only **⌘ ⌥ K** quits the app and brings the keyboard back
+- Default unlock combo is **⌘ ⌥ K**; customize it in settings
+- **⌘ ,** opens a native settings panel any time the app is running
+- Optional **silly mode** — app refuses to unlock until every key on the on-screen keyboard has been pressed at least once
 
-Mouse, trackpad, and the physical power button are not blocked, so you always have a way out.
+The physical power/Touch ID button isn't blocked (macOS reserves it), so you always have a way out.
 
 ![Numb — light show activated: random colors flashing across the keyboard as keys are mashed](docs/light-show.png)
+
+## Settings
+
+Press **⌘ ,** while Numb is running to open a native settings window:
+
+- **Unlock shortcut** — click the shortcut button and press the chord you want (modifiers echo live as you hold them; Esc cancels). Persists across launches.
+- **Silly mode** — toggle on to block unlock until every key on the on-screen keyboard (77 keys) has been pressed. The overlay shows a `MASH EVERY KEY · n/77` counter. The fingerprint/power slot is dimmed and excluded from the count.
 
 ## Install
 
@@ -27,9 +36,9 @@ Mouse, trackpad, and the physical power button are not blocked, so you always ha
 ## Use
 
 1. Open `Numb.app`
-2. Screen blurs + dims, keyboard is dead
+2. Screen blurs + dims, keyboard and mouse are dead
 3. Clean the keyboard (or let the toddler / cat go to town)
-4. Press **⌘ ⌥ K** to unlock
+4. Press **⌘ ⌥ K** (or your custom shortcut) to unlock
 
 ## Build from source
 
