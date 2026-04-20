@@ -124,6 +124,16 @@ final class KeyView: NSView {
 }
 
 final class KeyboardView: NSView {
+    // Every keycode that appears on the on-screen keyboard (used by silly mode).
+    static let allKeyCodes: Set<CGKeyCode> = [
+        53, 122, 120, 99, 118, 96, 97, 98, 100, 101, 109, 103, 111,
+        50, 18, 19, 20, 21, 23, 22, 26, 28, 25, 29, 27, 24, 51,
+        48, 12, 13, 14, 15, 17, 16, 32, 34, 31, 35, 33, 30, 42,
+        57, 0, 1, 2, 3, 5, 4, 38, 40, 37, 41, 39, 36,
+        56, 6, 7, 8, 9, 11, 45, 46, 43, 47, 44, 60,
+        63, 59, 58, 55, 49, 54, 61, 123, 126, 125, 124,
+    ]
+
     private var keyViews: [CGKeyCode: [KeyView]] = [:]
     private let scale: CGFloat
 
@@ -156,6 +166,11 @@ final class KeyboardView: NSView {
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
 
+        // Top-right slot is the fingerprint/power button — it never reaches
+        // user-space, so dim it to signal "not counted in silly mode."
+        let powerKey = makeKey(nil, w: KBBase.keyW)
+        powerKey.alphaValue = 0.35
+
         let row1 = hrow([
             makeKey(53,  w: KBBase.flexSmall),
             makeKey(122, w: KBBase.keyW), makeKey(120, w: KBBase.keyW),
@@ -164,7 +179,7 @@ final class KeyboardView: NSView {
             makeKey(98,  w: KBBase.keyW), makeKey(100, w: KBBase.keyW),
             makeKey(101, w: KBBase.keyW), makeKey(109, w: KBBase.keyW),
             makeKey(103, w: KBBase.keyW), makeKey(111, w: KBBase.keyW),
-            makeKey(nil, w: KBBase.keyW),
+            powerKey,
         ])
 
         let row2 = hrow([
