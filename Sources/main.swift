@@ -10,14 +10,32 @@ func pulseAll(_ code: CGKeyCode) {
     keyboardViews.forEach { $0.pulse(code) }
 }
 
+// NSEvent raw type numbers for pointer/gesture events that CGEventType
+// doesn't name. Trackpad gestures come through with these values.
+let pointerEventRawTypes: Set<UInt32> = [
+    17, // cursorUpdate
+    18, // rotate
+    19, // beginGesture
+    20, // endGesture
+    29, // gesture
+    30, // magnify
+    31, // swipe
+    32, // smartMagnify
+    33, // quickLook
+    34, // pressure
+    37, // directTouch
+    38, // changeMode
+]
+
 func isMouseEvent(_ type: CGEventType) -> Bool {
     switch type {
     case .mouseMoved, .leftMouseDown, .leftMouseUp, .leftMouseDragged,
          .rightMouseDown, .rightMouseUp, .rightMouseDragged,
-         .otherMouseDown, .otherMouseUp, .otherMouseDragged, .scrollWheel:
+         .otherMouseDown, .otherMouseUp, .otherMouseDragged, .scrollWheel,
+         .tabletPointer, .tabletProximity:
         return true
     default:
-        return false
+        return pointerEventRawTypes.contains(type.rawValue)
     }
 }
 
@@ -165,7 +183,7 @@ if !trusted {
     exit(1)
 }
 
-let mask: CGEventMask =
+var mask: CGEventMask =
     (1 << CGEventType.keyDown.rawValue) |
     (1 << CGEventType.keyUp.rawValue) |
     (1 << CGEventType.flagsChanged.rawValue) |
@@ -179,7 +197,13 @@ let mask: CGEventMask =
     (1 << CGEventType.otherMouseDown.rawValue) |
     (1 << CGEventType.otherMouseUp.rawValue) |
     (1 << CGEventType.otherMouseDragged.rawValue) |
-    (1 << CGEventType.scrollWheel.rawValue)
+    (1 << CGEventType.scrollWheel.rawValue) |
+    (1 << CGEventType.tabletPointer.rawValue) |
+    (1 << CGEventType.tabletProximity.rawValue)
+
+for raw in pointerEventRawTypes {
+    mask |= (CGEventMask(1) << CGEventMask(raw))
+}
 
 eventTap = CGEvent.tapCreate(
     tap: .cgSessionEventTap,
@@ -204,16 +228,16 @@ let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
 CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
 CGEvent.tapEnable(tap: tap, enable: true)
 
-// Cursor goes numb too.
+// Cursor goes numb too: hide it and decouple it from pointer input so
+// trackpad/mouse motion can't drift the cursor even if an event slips by.
 CGDisplayHideCursor(CGMainDisplayID())
+CGAssociateMouseAndMouseCursorPosition(0)
 
 enum Design {
     static let backdropTint = NSColor(red: 0x32/255.0, green: 0x32/255.0, blue: 0x32/255.0, alpha: 0.80)
     static let white = NSColor(red: 0xFF/255.0, green: 0xF5/255.0, blue: 0xF5/255.0, alpha: 1.0)
     static let dim = NSColor(red: 0xFF/255.0, green: 0xF5/255.0, blue: 0xF5/255.0, alpha: 0.60)
     static let captionBottomInset: CGFloat = 72
-    static let captionTopInset: CGFloat = 28
-    static let captionSideInset: CGFloat = 28
     static let hintKeycapSide: CGFloat = 26
     static let hintKeycapSmallSide: CGFloat = 20
     static let hintKeycapRadius: CGFloat = 4
@@ -320,8 +344,9 @@ func buildSettingsHint() -> NSView {
 
 final class OverlayController {
     var windows: [NSWindow] = []
-    var bottomHintHosts: [NSView] = []
-    var topHintHosts: [NSView] = []
+    var sillyHosts: [NSView] = []
+    var unlockHosts: [NSView] = []
+    var settingsHintViews: [NSView] = []
 
     func show() {
         for screen in NSScreen.screens {
@@ -366,25 +391,28 @@ final class OverlayController {
                 keyboard.centerYAnchor.constraint(equalTo: content.centerYAnchor),
             ])
 
-            // Bottom hint host — rebuilt whenever settings/silly-progress changes.
-            let bottomHost = NSView()
-            bottomHost.translatesAutoresizingMaskIntoConstraints = false
-            content.addSubview(bottomHost)
-            NSLayoutConstraint.activate([
-                bottomHost.centerXAnchor.constraint(equalTo: content.centerXAnchor),
-                bottomHost.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -Design.captionBottomInset),
-            ])
-            bottomHintHosts.append(bottomHost)
+            // Bottom vertical stack: silly counter (when active) / settings
+            // hint (persistent, fades once) / unlock hint. Silly and unlock
+            // hosts are rebuilt on refresh; the settings hint is never
+            // replaced so its fade animation survives refreshes.
+            let sillyHost = NSView()
+            let settingsHint = buildSettingsHint()
+            let unlockHost = NSView()
 
-            // Top-right settings hint.
-            let topHost = NSView()
-            topHost.translatesAutoresizingMaskIntoConstraints = false
-            content.addSubview(topHost)
+            let stack = NSStackView(views: [sillyHost, settingsHint, unlockHost])
+            stack.orientation = .vertical
+            stack.spacing = 10
+            stack.alignment = .centerX
+            stack.translatesAutoresizingMaskIntoConstraints = false
+            content.addSubview(stack)
             NSLayoutConstraint.activate([
-                topHost.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -Design.captionSideInset),
-                topHost.topAnchor.constraint(equalTo: content.topAnchor, constant: Design.captionTopInset),
+                stack.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+                stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -Design.captionBottomInset),
             ])
-            topHintHosts.append(topHost)
+
+            sillyHosts.append(sillyHost)
+            unlockHosts.append(unlockHost)
+            settingsHintViews.append(settingsHint)
 
             window.contentView = content
             window.orderFrontRegardless()
@@ -397,50 +425,43 @@ final class OverlayController {
     private func scheduleSettingsHintFade() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
             guard let self = self else { return }
-            for host in self.topHintHosts {
+            for view in self.settingsHintViews {
                 NSAnimationContext.runAnimationGroup { ctx in
                     ctx.duration = 1.0
-                    host.animator().alphaValue = 0
+                    view.animator().alphaValue = 0
                 }
             }
         }
     }
 
     func refreshHints() {
-        for host in bottomHintHosts {
-            host.subviews.forEach { $0.removeFromSuperview() }
-            let stack = NSStackView()
-            stack.orientation = .vertical
-            stack.spacing = 10
-            stack.alignment = .centerX
-            stack.translatesAutoresizingMaskIntoConstraints = false
-
+        for (sillyHost, unlockHost) in zip(sillyHosts, unlockHosts) {
+            sillyHost.subviews.forEach { $0.removeFromSuperview() }
             if AppSettings.sillyMode && !sillyReady() {
-                stack.addArrangedSubview(buildSillyHint())
-            }
-            stack.addArrangedSubview(buildUnlockHint(symbols: AppSettings.shortcut.symbols))
-
-            host.addSubview(stack)
-            NSLayoutConstraint.activate([
-                stack.leadingAnchor.constraint(equalTo: host.leadingAnchor),
-                stack.trailingAnchor.constraint(equalTo: host.trailingAnchor),
-                stack.topAnchor.constraint(equalTo: host.topAnchor),
-                stack.bottomAnchor.constraint(equalTo: host.bottomAnchor),
-            ])
-        }
-
-        for host in topHintHosts {
-            if host.subviews.isEmpty {
-                let hint = buildSettingsHint()
+                sillyHost.isHidden = false
+                let hint = buildSillyHint()
                 hint.translatesAutoresizingMaskIntoConstraints = false
-                host.addSubview(hint)
+                sillyHost.addSubview(hint)
                 NSLayoutConstraint.activate([
-                    hint.leadingAnchor.constraint(equalTo: host.leadingAnchor),
-                    hint.trailingAnchor.constraint(equalTo: host.trailingAnchor),
-                    hint.topAnchor.constraint(equalTo: host.topAnchor),
-                    hint.bottomAnchor.constraint(equalTo: host.bottomAnchor),
+                    hint.leadingAnchor.constraint(equalTo: sillyHost.leadingAnchor),
+                    hint.trailingAnchor.constraint(equalTo: sillyHost.trailingAnchor),
+                    hint.topAnchor.constraint(equalTo: sillyHost.topAnchor),
+                    hint.bottomAnchor.constraint(equalTo: sillyHost.bottomAnchor),
                 ])
+            } else {
+                sillyHost.isHidden = true
             }
+
+            unlockHost.subviews.forEach { $0.removeFromSuperview() }
+            let unlock = buildUnlockHint(symbols: AppSettings.shortcut.symbols)
+            unlock.translatesAutoresizingMaskIntoConstraints = false
+            unlockHost.addSubview(unlock)
+            NSLayoutConstraint.activate([
+                unlock.leadingAnchor.constraint(equalTo: unlockHost.leadingAnchor),
+                unlock.trailingAnchor.constraint(equalTo: unlockHost.trailingAnchor),
+                unlock.topAnchor.constraint(equalTo: unlockHost.topAnchor),
+                unlock.bottomAnchor.constraint(equalTo: unlockHost.bottomAnchor),
+            ])
         }
     }
 }

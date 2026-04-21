@@ -218,12 +218,14 @@ final class SettingsController: NSWindowController, NSWindowDelegate {
         AppState.settingsOpen = false
         AppState.capturingShortcut = false
         AppState.captureLiveFlags = []
+        CGAssociateMouseAndMouseCursorPosition(0)
         CGDisplayHideCursor(CGMainDisplayID())
         NotificationCenter.default.post(name: .numbSettingsDidChange, object: nil)
     }
 
     func show() {
         AppState.settingsOpen = true
+        CGAssociateMouseAndMouseCursorPosition(1)
         CGDisplayShowCursor(CGMainDisplayID())
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

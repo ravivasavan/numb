@@ -49,8 +49,14 @@ codesign --force --deep --sign - "$APP_DIR"
 # Nudge Finder/Dock to pick up the icon on rebuilds
 touch "$APP_DIR"
 
+# Package a release-ready zip (preserves bundle metadata via ditto)
+ZIP_PATH="$BUILD_DIR/$APP_NAME.zip"
+rm -f "$ZIP_PATH"
+ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ZIP_PATH"
+
 echo ""
 echo "✓ built $APP_DIR"
+echo "✓ packaged $ZIP_PATH"
 echo ""
 echo "next steps:"
 echo "  1. open $APP_DIR   (first launch will prompt for Accessibility access)"

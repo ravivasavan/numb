@@ -47,4 +47,4 @@ Press **⌘ ,** while Numb is running to open a native settings window:
 open build/Numb.app
 ```
 
-Requires Xcode command-line tools (`swiftc`, `iconutil`, `sips`). The script builds the `.app` bundle, generates the icon set from `Resources/AppIcon.png`, and ad-hoc signs the result.
+Requires Xcode command-line tools (`swiftc`, `iconutil`, `sips`, `ditto`). The script builds the `.app` bundle, generates the icon set from `Resources/AppIcon.png`, ad-hoc signs the result, and packages `build/Numb.zip` ready for release.
